@@ -1,11 +1,78 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://aframe.io/releases/0.8.0/aframe.min.js"></script>
-  <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/1.5.0/aframe/build/aframe-ar.js"></script>
-  <script src="//cdn.rawgit.com/donmccurdy/aframe-extras/v3.8.4/dist/aframe-extras.min.js"></script>
-  <script src="https://rawgit.com/mayognaise/aframe-gif-shader/master/dist/aframe-gif-shader.min.js"></script>
-  <script>
+    <script src="{{url_for('static',filename='js/aframe.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/aframe-ar.js')}}"></script>
+
+<!--  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"></script>-->
+<!--  <script src="https://aframe.io/releases/0.8.0/aframe.min.js"></script>-->
+<!--  <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/1.5.0/aframe/build/aframe-ar.js"></script>-->
+<!--  <script src="//cdn.rawgit.com/donmccurdy/aframe-extras/v3.8.4/dist/aframe-extras.min.js"></script>-->
+<!--  <script src="https://rawgit.com/mayognaise/aframe-gif-shader/master/dist/aframe-gif-shader.min.js"></script>-->
+</head>
+
+<body style="margin: 0px; overflow: hidden;">
+
+<script>
+
+let markerVisible = false;
+
+AFRAME.registerComponent('registerevents', {
+    init: function ()
+    {
+        let marker = this.el;
+        let follower = document.querySelector("#follower");
+        let followerPlane = document.querySelector("#followerPlane");
+
+        marker.addEventListener('markerFound', function() {
+            // check if marker is found for the first time;
+            //  if so, make object visible and align position/rotation.
+            if ( follower.getAttribute("active") == "0" )
+            {
+                follower.setAttribute("active", "1");
+                followerPlane.setAttribute("material", "visible", "true");
+            }
+            markerVisible = true;
+        });
+
+        marker.addEventListener('markerLost', function() {
+            markerVisible = false;
+        });
+
+        this.p = new THREE.Vector3();
+        this.q = new THREE.Quaternion();
+        this.s = new THREE.Vector3();
+    },
+
+    tick: function (time, deltaTime)
+    {
+        // if marker is visible, align the entity to the marker
+        if (markerVisible)
+        {
+            let marker = this.el;
+            let follower = document.querySelector("#follower");
+            let followerPlane = document.querySelector("#followerPlane");
+
+            let lerpAmount = 0.5;
+
+            marker.object3D.getWorldPosition(this.p);
+			marker.object3D.getWorldQuaternion(this.q);
+			marker.object3D.getWorldScale(this.s);
+
+			follower.object3D.position.lerp(this.p, lerpAmount);
+            follower.object3D.quaternion.slerp(this.q, lerpAmount);
+			follower.object3D.scale.lerp(this.s, lerpAmount);
+            followerPlane.setAttribute("material", "visible", "true");
+
+        }
+        else
+        {
+            followerPlane.setAttribute("material", "visible", "false");
+        }
+    }
+});
+
+
     AFRAME.registerComponent('vidhandler', {
       // ...
       init: function () {
@@ -26,23 +93,24 @@
             }
           }
         });
-  </script>
-</head>
+</script>
 
+<a-scene embedded vr-mode-ui="enabled: false;" arjs="debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
 
-<body style='margin : 0px; overflow: hidden;'>
-  <div style='position: fixed; top: 10px; width:inherit; text-align: center; z-index: 1;'>
-    <a href="https://github.com/jeromeetienne/AR.js/" target="_blank">AR.js</a> - Check out the repository !
-  </div>
-  <a-scene embedded artoolkit='sourceType: webcam; detectionMode: mono; maxDetectionRate: 30; canvasWidth: 240; canvasHeight: 180' >
     <a-assets>
-      <video id="vid" src="{{url_for('static',filename=video_path)}}" loop="true" crossorigin>
-    </a-assets>
+		<img id="grid" src="{{url_for('static',filename='border_2.jpg')}}" />
+        <video id="vid" src="{{url_for('static',filename=video_path)}}" loop="true" crossorigin></video>
 
-    <a-marker id="memarker" preset="hiro" vidhandler>
-      <a-plane position='0 0 0' scale="5 5 5" width="2" rotation="0 0 0" material='transparent:true;opacity: 1;src:#vid' geometry></a-plane>
+	</a-assets>
+
+    <a-marker type="pattern" url="{{url_for('static',filename='kanji.patt')}}" id="baseMarker" registerevents vidhandler>
     </a-marker>
 
-  </a-scene>
+    <a-entity id="follower" active="0">
+        <a-plane id = followerPlane position='0 0 0' scale="1 1 1" width="2" rotation="0 0 0" material='transparent:true;opacity: 1;src:#vid' geometry></a-plane>
+        </a-plane>
+    </a-entity>
+    <a-entity camera></a-entity>
+</a-scene>
 </body>
 </html>
