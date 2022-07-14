@@ -12,7 +12,7 @@ path_to_videos = ['Videos/remote_server_client1.mp4', 'Videos/remote_server_clie
 
 @app.route('/')
 def index():
-    video_path = path_to_videos[5]
+    video_path = path_to_videos[0]
     return render_template('index.html', video_path=video_path)
 
 
